@@ -19,7 +19,7 @@ jobs:
       AWS_REGION: ap-northeast-2
       S3_BUCKET: api-test-json-provider
       # (선택) 특정 폴더만 배포하고 싶으면 사용. 예: dist, build, public, .
-      BUILD_DIR: .
+      BUILD_DIR: web
 
     steps:
       - name: Checkout
