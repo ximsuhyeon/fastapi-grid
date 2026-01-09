@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   deploy:
+    name: deploy
     runs-on: ubuntu-latest
 
     env:
@@ -18,20 +19,40 @@ jobs:
       DEPLOY_DIR: .
 
     steps:
-      - name: Checkout
+      # 1️⃣ 레포 체크아웃
+      - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 2️⃣ 레포 파일 구조 출력 (디버그)
+      - name: List repo files (debug)
+        run: |
+          echo "===== CURRENT DIRECTORY ====="
+          pwd
+          echo "===== ROOT FILES ====="
+          ls -al
+          echo "===== .github/workflows ====="
+          ls -al .github/workflows || true
+          echo "===== web directory ====="
+          ls -al web || true
+
+      # 3️⃣ OIDC로 AWS Role Assume
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::996621491488:role/GitHubActionsS3Role
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Verify identity
-        run: aws sts get-caller-identity
-
-      # ✅ 필요한 파일만 업로드 (index.html, index2.html만)
-      - name: Upload only html files
+      # 4️⃣ AWS 인증 + 버킷 접근 확인 (디버그)
+      - name: Verify AWS identity and S3 access (debug)
         run: |
-          aws s3 cp "${DEPLOY_DIR}/index.html"  "s3://${S3_BUCKET}/index.html"  --only-show-errors
-          aws s3 cp "${DEPLOY_DIR}/index2.html" "s3://${S3_BUCKET}/index2.html" --only-show-errors
+          echo "===== STS CALLER ID ====="
+          aws sts get-caller-identity
+          echo "===== LIST S3 BUCKET ====="
+          aws s3 ls "s3://${S3_BUCKET}/" || true
+
+      # 5️⃣ HTML 파일만 업로드 (에러 자세히 출력)
+      - name: Upload index html files to S3
+        run: |
+          set -euxo pipefail
+          aws s3 cp "${DEPLOY_DIR}/index.html"  "s3://${S3_BUCKET}/index.html"
+          aws s3 cp "${DEPLOY_DIR}/index2.html" "s3://${S3_BUCKET}/index2.html"
